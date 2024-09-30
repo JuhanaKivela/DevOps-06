@@ -3,7 +3,10 @@ const express = require('express');
 const app = express();
 const PORT = 3001;
 
+
 app.listen(PORT, (error) =>{
+    // To run this:
+    // node server.js
     if(!error)
         console.log("Server is Successfully Running, and App is listening on port "+ PORT)
     else 
