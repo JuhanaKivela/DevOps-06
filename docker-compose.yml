@@ -1,9 +1,22 @@
 services:
   service1:
     build: ./service1
+    image: juhana/service1
     ports:
       - "8199:8199"
+    depends_on:
+      - service2
+    networks:
+      - internal
+
   service2:
     build: ./service2
-    ports:
-      - "3001:3001"
+    image: juhana/service2
+    expose:
+      - "3001"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
