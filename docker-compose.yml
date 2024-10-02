@@ -1,6 +1,6 @@
 services:
   service1:
-    build: ./service1
+    build: ./Service1
     image: juhana/service1
     ports:
       - "8199:8199"
@@ -10,7 +10,7 @@ services:
       - internal
 
   service2:
-    build: ./service2
+    build: ./Service2
     image: juhana/service2
     expose:
       - "3001"
