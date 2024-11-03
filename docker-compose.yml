@@ -1,9 +1,24 @@
+version: '3'
 services:
-  service1:
+  service1-1:
     build: ./Service1
-    image: juhana/service1
-    ports:
-      - "8199:8199"
+    image: juhana/service1-1
+    depends_on:
+      - service2
+    networks:
+      - internal
+
+  service1-2:
+    build: ./Service1
+    image: juhana/service1-2
+    depends_on:
+      - service2
+    networks:
+      - internal
+
+  service1-3:
+    build: ./Service1
+    image: juhana/service1-3
     depends_on:
       - service2
     networks:
@@ -14,6 +29,19 @@ services:
     image: juhana/service2
     expose:
       - "3001"
+    networks:
+      - internal
+
+  nginx:
+    build: ./Nginx
+    image: juhana/nginx
+    depends_on:
+      - service1-1
+      - service1-2
+      - service1-3
+      - service2
+    ports:
+    - "8198:9198"
     networks:
       - internal
 
