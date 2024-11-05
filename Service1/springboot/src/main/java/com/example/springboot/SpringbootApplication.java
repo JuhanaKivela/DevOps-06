@@ -76,14 +76,15 @@ public class SpringbootApplication {
 			this.application = application;
 		}
 
-		@RequestMapping("/")
-		public ModelAndView getSysInfo() {
+		/*@RequestMapping("/")
+		public String getSysInfo() {
 			System.out.println("Received request for system information");
 			if(application.serviceSleeping){
 			}
 			ModelAndView modelAndView = new ModelAndView();
-			modelAndView.setViewName("login.html");
+			modelAndView.setViewName("mainPage.html");
 			return modelAndView;
-		}
+			return 
+		}*/
 	}
 }
