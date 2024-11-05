@@ -10,3 +10,4 @@ FROM maven:3.9.9-eclipse-temurin-21-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar service1.jar
 ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/service1.jar"]
+EXPOSE 5050
