@@ -7,12 +7,16 @@ import java.util.Map;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.ModelAndView;
 
 @SpringBootApplication
 public class SpringbootApplication {
+
+	private boolean serviceSleeping = false;
+
 	// To run this:
 	// mvn spring-boot:run
 	public static void main(String[] args) {
@@ -64,11 +68,22 @@ public class SpringbootApplication {
 	}
 
 	// Controller to handle requests to the root of the server
-	@RestController
+	@Controller
 	static class SysInfoController {
+		private final SpringbootApplication application;
+
+		public SysInfoController(SpringbootApplication application) {
+			this.application = application;
+		}
+
 		@RequestMapping("/")
-		public String getSysInfo() {
-			return gatherBothSystemInformation();
+		public ModelAndView getSysInfo() {
+			System.out.println("Received request for system information");
+			if(application.serviceSleeping){
+			}
+			ModelAndView modelAndView = new ModelAndView();
+			modelAndView.setViewName("login.html");
+			return modelAndView;
 		}
 	}
 }
