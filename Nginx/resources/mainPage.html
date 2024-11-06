@@ -62,15 +62,7 @@
 
             stopButton.addEventListener('click', function(event) {
                 event.preventDefault();
-                responseArea.value = 'Stopping service...';
-                fetch('/stop')
-                    .then(response => response.text())
-                    .then(data => {
-                        responseArea.value = data;
-                    })
-                    .catch(error => {
-                        responseArea.value = error;
-                    });
+                responseArea.value = 'This button doesn\'t seem to do anything...';
             });
         });
     </script>
