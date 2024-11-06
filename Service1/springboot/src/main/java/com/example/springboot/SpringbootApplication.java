@@ -96,7 +96,21 @@ public class SpringbootApplication {
 		@ResponseBody
 		public String getSysInfo() {
 			String containerName = System.getenv("CONTAINER_NAME");
-			return "Fetched from instance: " + containerName + "\nSystem information:\n\n" + gatherBothSystemInformation();
+			if(serviceSleeping) {
+				return containerName + " is still sleeping. Try again later.";
+			}
+			String response = "Fetched from instance: " + containerName + "\n\nSystem information:\n" + gatherBothSystemInformation();
+
+			new Thread(() -> {
+                try {
+					serviceSleeping = true;
+                    Thread.sleep(2000); // Sleep for 2 seconds
+					serviceSleeping = false;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
+			return response;
 		}
 	}
 }
