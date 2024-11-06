@@ -1,0 +1,14 @@
+docker container ls
+CONTAINER ID   IMAGE                    COMMAND                  CREATED          STATUS          PORTS                            NAMES
+c298416b7057   devops-exercises-nginx   "/docker-entrypoint.…"   40 seconds ago   Up 38 seconds   80/tcp, 0.0.0.0:8198->8198/tcp   devops-exercises-nginx-1
+10ea49fc5b52   juhana/service1-3        "java -Djava.securit…"   41 seconds ago   Up 39 seconds   5050/tcp                         devops-exercises-service1-3-1
+937260e252a3   juhana/service1-2        "java -Djava.securit…"   41 seconds ago   Up 39 seconds   5050/tcp                         devops-exercises-service1-2-1
+b9751e56b3d8   juhana/service2          "docker-entrypoint.s…"   41 seconds ago   Up 39 seconds   3001/tcp                         devops-exercises-service2-1
+dd4e0a36527d   juhana/service1-1        "java -Djava.securit…"   41 seconds ago   Up 39 seconds   5050/tcp                         devops-exercises-service1-1-1
+
+docker network ls
+NETWORK ID     NAME                        DRIVER    SCOPE
+b8a73b376918   bridge                      bridge    local
+76bd47327539   devops-exercises_internal   bridge    local
+e67e97db31d7   host                        host      local
+fcdfcef9f6cc   none                        null      local
