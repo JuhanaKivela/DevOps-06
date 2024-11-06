@@ -3,41 +3,58 @@ package com.example.springboot;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
+import java.time.Duration;
 import java.util.Map;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.ModelAndView;
 
 @SpringBootApplication
 public class SpringbootApplication {
 
 	private boolean serviceSleeping = false;
-
-	// To run this:
-	// mvn spring-boot:run
-	public static void main(String[] args) {
-		SpringApplication.run(SpringbootApplication.class, args);
-	}
-
-	// Gather system information from both systems
-	// Gathers IP address, processes, remaining disk space, and uptime
-	private static String gatherBothSystemInformation() {
-    	try {
-    	    // System1 information
-    	    String ip_address = InetAddress.getLocalHost().getHostAddress();
-    	    String processInfo = runCLICommand("bash", "-c", "top -b -n 1 | sed '1,6d'");
-    	    String remainingDiskSpace = runCLICommand("bash", "-c", "df -h --output=avail / | tail -n 1");
-    	    String uptime = runCLICommand("bash", "-c", "uptime -p");
-
-			String system1InfoString = formatSystemInfo("Service1", ip_address, processInfo, remainingDiskSpace, uptime);
-
-			// System2 information
-			RestTemplate restTemplate = new RestTemplate();
-			Map<String, Object> system2Info = restTemplate.getForObject("http://service2:3001/sysInfo", Map.class);
+	private static RestTemplate restTemplate = null;
+		
+			// To run this:
+			// mvn spring-boot:run
+			public static void main(String[] args) {
+				SpringApplication.run(SpringbootApplication.class, args);
+				restTemplate = new RestTemplateBuilder()
+				.setConnectTimeout(Duration.ofSeconds(2))
+				.setReadTimeout(Duration.ofSeconds(2))
+				.build();
+		}
+	
+		// Gather system information from both systems
+		// Gathers IP address, processes, remaining disk space, and uptime
+		private String gatherBothSystemInformation() {
+			try {
+				// System1 information
+				String ip_address = InetAddress.getLocalHost().getHostAddress();
+				String processInfo = runCLICommand("bash", "-c", "top -b -n 1 | sed '1,6d'");
+				String remainingDiskSpace = runCLICommand("bash", "-c", "df -h --output=avail / | tail -n 1");
+				String uptime = runCLICommand("bash", "-c", "uptime -p");
+	
+				String system1InfoString = formatSystemInfo("Service1", ip_address, processInfo, remainingDiskSpace, uptime);
+	
+				// System2 information
+				Map<String, Object> system2Info;
+				try {
+					Map<String, Object> tempSystem2Info = restTemplate.getForObject("http://service2:3001/sysInfo", Map.class);
+				system2Info = tempSystem2Info;
+			} catch (Exception e) {
+				system2Info = Map.of(
+					"ip", "N/A",
+					"topProcesses", "N/A",
+					"diskSpace", "N/A",
+					"uptime", "N/A"
+				);
+			}
 
 			String system2InfoString = formatSystemInfo("Service2", (String) system2Info.get("ip"), (String) system2Info.get("topProcesses"), (String) system2Info.get("diskSpace"), (String) system2Info.get("uptime"));
 
@@ -52,7 +69,7 @@ public class SpringbootApplication {
 	}
 
 	// Run a command in the CLI of the host machine
-	private static String runCLICommand(String... command) throws Exception {
+	private String runCLICommand(String... command) throws Exception {
     	ProcessBuilder processBuilder = new ProcessBuilder(command);
     	Process process = processBuilder.start();
 		
@@ -65,26 +82,21 @@ public class SpringbootApplication {
     	    process.waitFor();
     	    return output.toString();
     	}
+		catch (Exception e) {
+			process.destroy();
+			return "N/A";
+		}
 	}
 
 	// Controller to handle requests to the root of the server
 	@Controller
-	static class SysInfoController {
-		private final SpringbootApplication application;
+	class SysInfoController {
 
-		public SysInfoController(SpringbootApplication application) {
-			this.application = application;
-		}
-
-		/*@RequestMapping("/")
+		@RequestMapping("/request")
+		@ResponseBody
 		public String getSysInfo() {
-			System.out.println("Received request for system information");
-			if(application.serviceSleeping){
-			}
-			ModelAndView modelAndView = new ModelAndView();
-			modelAndView.setViewName("mainPage.html");
-			return modelAndView;
-			return 
-		}*/
+			String containerName = System.getenv("CONTAINER_NAME");
+			return "Fetched from instance: " + containerName + "\nSystem information:\n\n" + gatherBothSystemInformation();
+		}
 	}
 }

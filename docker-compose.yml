@@ -15,18 +15,24 @@ services:
   service1-1:
     build: ./Service1
     image: juhana/service1-1
+    environment:
+      - CONTAINER_NAME=service1-1
     networks:
       - internal
 
   service1-2:
     build: ./Service1
     image: juhana/service1-2
+    environment:
+      - CONTAINER_NAME=service1-2
     networks:
       - internal
 
   service1-3:
     build: ./Service1
     image: juhana/service1-3
+    environment:
+      - CONTAINER_NAME=service1-3
     networks:
       - internal
 

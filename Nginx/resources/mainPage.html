@@ -4,12 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Main Page</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #contents {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        button {
+            width: 100px;
+        }
+        textarea {
+            width: 800px;
+            height: 600px;
+        }
+    </style>
 </head>
 <body>
     <div id="contents">
-        <h1>Main Page</h1>
-        
+        <h2>Main Page</h2>
+        <div id="buttons">
+            <button id="requestButton">REQUEST</button>
+            <button id="stopButton">STOP</button>
+        </div>
+        <textarea id="responseArea"></textarea>
     </div>
-    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const responseArea = document.getElementById('responseArea');
+            const requestButton = document.getElementById('requestButton');
+            const stopButton = document.getElementById('stopButton');
+
+            requestButton.addEventListener('click', function(event) {
+                event.preventDefault();
+                responseArea.value = 'Sending request...';
+                fetch('/request')
+                    .then(response => response.text())
+                    .then(data => {
+                        responseArea.value = data;
+                    })
+                    .catch(error => {
+                        responseArea.value = error;
+                    });
+            });
+
+            stopButton.addEventListener('click', function(event) {
+                event.preventDefault();
+                responseArea.value = 'Stopping service...';
+                fetch('/stop')
+                    .then(response => response.text())
+                    .then(data => {
+                        responseArea.value = data;
+                    })
+                    .catch(error => {
+                        responseArea.value = error;
+                    });
+            });
+        });
+    </script>
 </body>
 </html>
