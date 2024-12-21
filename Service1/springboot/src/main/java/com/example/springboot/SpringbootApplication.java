@@ -106,6 +106,9 @@ public class SpringbootApplication {
 		@ResponseBody
 		public String getSysInfo() {
 			String containerName = System.getenv("CONTAINER_NAME");
+			if(currentState == ServiceState.PAUSED) {
+				return containerName + " is paused. Cannot fetch system information.";
+			}
 			if(serviceSleeping) {
 				return containerName + " is still sleeping. Try again later.";
 			}
@@ -134,10 +137,8 @@ public class SpringbootApplication {
 		public String setState(String state) {
 			if(state.equals("PAUSED")) {
 				currentState = ServiceState.PAUSED;
-				// TODO: Pause the service
 				return "Service is now paused";
 			} else if(state.equals("RUNNING")) {
-				// TODO: Resume the service
 				currentState = ServiceState.RUNNING;
 				return "Service is now running";
 			} else if (state.equals("INIT")) {
