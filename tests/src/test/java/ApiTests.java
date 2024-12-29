@@ -61,4 +61,15 @@ public class ApiTests {
             .then()
             .statusCode(401);
     }
+
+    @Test
+    public void testRunLogEndpoint() {
+        given()
+            .when()
+            .get("/run-log")
+            .then()
+            .statusCode(200)
+            .contentType("text/plain")
+            .body(equalTo("[]"));
+    }
 }
