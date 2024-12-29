@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.boot.SpringApplication;
@@ -31,7 +33,7 @@ public class SpringbootApplication {
 
 	private ServiceState currentState = ServiceState.INIT;
 
-	private String[] logs;
+	private List<String> logs = new ArrayList<String>();
 		
 	// To run this:
 	// mvn spring-boot:run
@@ -101,6 +103,13 @@ public class SpringbootApplication {
 		}
 	}
 
+	private void log(String newStatus) {
+		String currentTime = java.time.LocalTime.now().toString();
+		String stringToAdd = currentTime + ":" + currentState.toString() + " -> " + newStatus;
+		logs.add(stringToAdd);
+
+	}
+
 	// Controller to handle requests to the root of the server
 	@Controller
 	class SysInfoController {
@@ -144,21 +153,37 @@ public class SpringbootApplication {
 		public ResponseEntity<String> setState(String state) {
 			HttpHeaders headers = new HttpHeaders();
 			if(state.equals("PAUSED")) {
+				// Don't do anything if the service is already paused
+				if(currentState == ServiceState.PAUSED) {
+					return new ResponseEntity<>("PAUSED", headers, HttpStatus.OK);
+				}
+				log(state);
 				currentState = ServiceState.PAUSED;
 				return new ResponseEntity<>("PAUSED", headers, HttpStatus.OK);
-			} else if(state.equals("RUNNING")) {
+			}
+			else if(state.equals("RUNNING")) {
+				// Don't do anything if the service is already running
+				if(currentState == ServiceState.RUNNING) {
+					return new ResponseEntity<>("RUNNING", headers, HttpStatus.OK);
+				}
+				log(state);
 				currentState = ServiceState.RUNNING;
 				return new ResponseEntity<>("RUNNING", headers, HttpStatus.OK);
-			} else if (state.equals("INIT")) {
+			}
+			else if (state.equals("INIT")) {
+				log(state);
 				currentState = ServiceState.INIT;
 				serviceSleeping = false;
 				headers.add("WWW-Authenticate", "Basic realm=\"Restricted\"");
 				return new ResponseEntity<>("INIT", headers, HttpStatus.OK);
-			} else if(state.equals("SHUTDOWN")) {
-				// TODO: Shutdown all the docker containers
+			}
+			else if(state.equals("SHUTDOWN")) {
+				log(state);
 				currentState = ServiceState.SHUTDOWN;
+				// TODO: Shutdown all the docker containers
 				return new ResponseEntity<>("SHUTDOWN", headers, HttpStatus.OK);
-			} else {
+			}
+			else {
 				return new ResponseEntity<>("INVALID", headers, HttpStatus.BAD_REQUEST);
 			}
 		}
@@ -170,15 +195,11 @@ public class SpringbootApplication {
 				return "System is not running. Can't return the state.";
 			}
 
-			if(logs == null) {
-				return "";
+			if(logs == null || logs.isEmpty()) {
+				return "[]";
 			}
-			
-			StringBuilder logString = new StringBuilder();
-			for(String log : logs) {
-				logString.append(log).append("\n");
-			}
-			return logString.toString();
+
+			return String.join("\n", logs);
 		}
 	}
 }
