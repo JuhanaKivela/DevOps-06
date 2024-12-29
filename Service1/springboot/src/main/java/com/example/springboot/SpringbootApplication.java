@@ -9,6 +9,9 @@ import java.util.Map;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -105,10 +108,11 @@ public class SpringbootApplication {
 		@RequestMapping("/request")
 		@ResponseBody
 		public String getSysInfo() {
-			String containerName = System.getenv("CONTAINER_NAME");
-			if(currentState == ServiceState.PAUSED) {
-				return containerName + " is paused. Cannot fetch system information.";
+			if(currentState != ServiceState.RUNNING){
+				return "System is not running. Can't return the state.";
 			}
+
+			String containerName = System.getenv("CONTAINER_NAME");
 			if(serviceSleeping) {
 				return containerName + " is still sleeping. Try again later.";
 			}
@@ -129,37 +133,47 @@ public class SpringbootApplication {
 		@GetMapping("/state")
 		@ResponseBody
 		public String getState() {
+			if(currentState != ServiceState.RUNNING){
+				return "System is not running. Can't return the state.";
+			}
 			return currentState.toString();
 		}
 
 		@PutMapping("/state")
 		@ResponseBody
-		public String setState(String state) {
+		public ResponseEntity<String> setState(String state) {
+			HttpHeaders headers = new HttpHeaders();
 			if(state.equals("PAUSED")) {
 				currentState = ServiceState.PAUSED;
-				return "Service is now paused";
+				return new ResponseEntity<>("PAUSED", headers, HttpStatus.OK);
 			} else if(state.equals("RUNNING")) {
 				currentState = ServiceState.RUNNING;
-				return "Service is now running";
+				return new ResponseEntity<>("RUNNING", headers, HttpStatus.OK);
 			} else if (state.equals("INIT")) {
-				// TODO: set everything to initial state, relogging is needed
 				currentState = ServiceState.INIT;
-				return "Service is now initialized";
+				serviceSleeping = false;
+				headers.add("WWW-Authenticate", "Basic realm=\"Restricted\"");
+				return new ResponseEntity<>("INIT", headers, HttpStatus.OK);
 			} else if(state.equals("SHUTDOWN")) {
 				// TODO: Shutdown all the docker containers
 				currentState = ServiceState.SHUTDOWN;
-				return "Service is now shutting down";
+				return new ResponseEntity<>("SHUTDOWN", headers, HttpStatus.OK);
 			} else {
-				return "Invalid state";
+				return new ResponseEntity<>("INVALID", headers, HttpStatus.BAD_REQUEST);
 			}
 		}
 
 		@GetMapping("/run-log")
 		@ResponseBody
 		public String getRunLog() {
+			if(currentState != ServiceState.RUNNING){
+				return "System is not running. Can't return the state.";
+			}
+
 			if(logs == null) {
 				return "";
 			}
+			
 			StringBuilder logString = new StringBuilder();
 			for(String log : logs) {
 				logString.append(log).append("\n");
