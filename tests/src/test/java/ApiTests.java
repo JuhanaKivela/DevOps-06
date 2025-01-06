@@ -4,8 +4,6 @@ import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 
-import java.beans.Transient;
-import java.lang.annotation.Target;
 
 public class ApiTests {
 
@@ -13,6 +11,11 @@ public class ApiTests {
     public static void setUp() {
         // URL for the testing API in port 8197
         RestAssured.baseURI = "http://localhost:8197";
+        given()
+            .contentType("text/plain")
+            .body("INIT")
+            .when()
+            .put("/state");
     }
 
     @Test
@@ -30,9 +33,8 @@ public class ApiTests {
     public void testPutStateEndpoint() {
         given()
             .contentType("text/plain")
-            .body("INIT")
             .when()
-            .put("/state")
+            .put("/state?state=INIT")
             .then()
             .statusCode(200)
             .contentType("text/plain")
@@ -40,24 +42,12 @@ public class ApiTests {
     }
 
     @Test
-    public void testPutStateWithAuthorization() {
-        // Set to INIT, which should forget authorization
-        given()
-            .contentType("text/plain")
-            .body("INIT")
-            .when()
-            .put("/state")
-            .then()
-            .statusCode(200)
-            .contentType("text/plain")
-            .body(equalTo("INIT"));
-
+    public void testPutStateWithoutAuthorization() {
         // Try to put to RUNNING, but it should respond with 401 Unauthorized
         given()
             .contentType("text/plain")
-            .body("RUNNING")
             .when()
-            .put("/state")
+            .put("/state?state=RUNNING")
             .then()
             .statusCode(401);
     }
