@@ -142,8 +142,8 @@ public class SpringbootApplication {
 		@GetMapping("/state")
 		@ResponseBody
 		public String getState() {
-			if(currentState != ServiceState.RUNNING){
-				return "System is not running. Can't return the state.";
+			if(currentState == ServiceState.PAUSED){
+				return "System is paused. Can't return the state.";
 			}
 			return currentState.toString();
 		}
@@ -191,8 +191,8 @@ public class SpringbootApplication {
 		@GetMapping("/run-log")
 		@ResponseBody
 		public String getRunLog() {
-			if(currentState != ServiceState.RUNNING){
-				return "System is not running. Can't return the state.";
+			if(currentState == ServiceState.PAUSED){
+				return "System is paused. Can't return the state.";
 			}
 
 			if(logs == null || logs.isEmpty()) {
