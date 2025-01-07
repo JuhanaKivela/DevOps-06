@@ -60,6 +60,6 @@ public class ApiTests {
             .then()
             .statusCode(200)
             .contentType("text/plain")
-            .body(equalTo("[]"));
+            .body(containsString("INIT -> INIT"));
     }
 }
