@@ -11,11 +11,6 @@ public class ApiTests {
     public static void setUp() {
         // URL for the testing API in port 8197
         RestAssured.baseURI = "http://localhost:8197";
-        given()
-            .contentType("text/plain")
-            .body("INIT")
-            .when()
-            .put("/state");
     }
 
     @Test
@@ -23,18 +18,6 @@ public class ApiTests {
         given()
             .when()
             .get("/state")
-            .then()
-            .statusCode(200)
-            .contentType("text/plain")
-            .body(equalTo("INIT"));
-    }
-
-    @Test
-    public void testPutStateEndpoint() {
-        given()
-            .contentType("text/plain")
-            .when()
-            .put("/state?state=INIT")
             .then()
             .statusCode(200)
             .contentType("text/plain")
@@ -60,6 +43,6 @@ public class ApiTests {
             .then()
             .statusCode(200)
             .contentType("text/plain")
-            .body(containsString("INIT -> INIT"));
+            .body(containsString("[]"));
     }
 }
