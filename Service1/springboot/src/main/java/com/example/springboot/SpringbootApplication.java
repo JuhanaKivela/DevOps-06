@@ -105,7 +105,7 @@ public class SpringbootApplication {
 
 	private void log(String newStatus) {
 		String currentTime = java.time.LocalTime.now().toString();
-		String stringToAdd = currentTime + ":" + currentState.toString() + " -> " + newStatus;
+		String stringToAdd = currentTime + ": " + currentState.toString() + " -> " + newStatus;
 		logs.add(stringToAdd);
 
 	}
