@@ -69,4 +69,62 @@ public class ApiTests {
             .contentType("text/plain")
             .body(containsString("INIT -> RUNNING"));
     }
+
+    @Test
+    @Order(5)
+    public void testGetRequestEndpoint() {
+        given()
+            .when()
+            .get("/request")
+            .then()
+            .statusCode(200)
+            .contentType("text/plain")
+            .body(containsString("System information:"));
+    }
+
+    @Test
+    @Order(6)
+    public void testPausedState() {
+        String pausedMessage = "System is paused. Can't return the state.";
+        // Put to PAUSED, should respond with 200 OK
+        given()
+            .auth().preemptive().basic(userName, password)
+            .contentType("text/plain")
+            .when()
+            .put("/state?state=PAUSED")
+            .then()
+            .statusCode(200)
+            .contentType("text/plain")
+            .body(equalTo("PAUSED"));
+        given()
+            .when()
+            .get("/request")
+            .then()
+            .statusCode(200)
+            .contentType("text/plain")
+            .body(equalTo(pausedMessage));
+        given()
+            .when()
+            .get("/state")
+            .then()
+            .statusCode(200)
+            .contentType("text/plain")
+            .body(equalTo(pausedMessage));
+        given()
+            .when()
+            .get("/run-log")
+            .then()
+            .statusCode(200)
+            .contentType("text/plain")
+            .body(equalTo(pausedMessage));
+        given()
+            .auth().preemptive().basic(userName, password)
+            .contentType("text/plain")
+            .when()
+            .put("/state?state=RUNNING")
+            .then()
+            .statusCode(200)
+            .contentType("text/plain")
+            .body(equalTo("RUNNING"));
+    }
 }
