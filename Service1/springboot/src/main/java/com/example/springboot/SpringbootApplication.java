@@ -118,7 +118,7 @@ public class SpringbootApplication {
 		@ResponseBody
 		public String getSysInfo() {
 			if(currentState != ServiceState.RUNNING){
-				return "System is not running. Can't return the state.";
+				return "System is paused. Can't return the state.";
 			}
 
 			String containerName = System.getenv("CONTAINER_NAME");
