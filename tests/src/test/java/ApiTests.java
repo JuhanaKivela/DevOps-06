@@ -17,6 +17,11 @@ public class ApiTests {
         RestAssured.baseURI = "http://localhost:8197";
         userName = "adminUser";
         password = "$apr1$w7ah8scx$mg2Jg0L4sAEAokKdf2lgm.";
+        given()
+            .auth().preemptive().basic(userName, password)
+            .contentType("text/plain")
+            .when()
+            .put("/state?state=INIT");
     }
 
     @Test
@@ -28,7 +33,7 @@ public class ApiTests {
             .then()
             .statusCode(200)
             .contentType("text/plain")
-            .body(equalTo("RUNNING"));
+            .body(equalTo("INIT"));
     }
 
     @Test
