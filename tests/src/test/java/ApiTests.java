@@ -1,11 +1,14 @@
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 
-
+@TestMethodOrder(OrderAnnotation.class)
 public class ApiTests {
 
     private static String userName;

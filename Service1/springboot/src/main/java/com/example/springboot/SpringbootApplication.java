@@ -4,13 +4,14 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,19 +22,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 
+import jakarta.annotation.PostConstruct;
+
 @SpringBootApplication
 public class SpringbootApplication {
 
 	private boolean serviceSleeping = false;
 	private static RestTemplate restTemplate = null;
 
-	private enum ServiceState {
-		INIT, PAUSED, RUNNING, SHUTDOWN
-	}
+	// Creates singleton of redisTemplate
+	@Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
-	private ServiceState currentState = ServiceState.INIT;
-
-	private List<String> logs = new ArrayList<String>();
+	// Keys for accessing values from Redis
+	private static final String STATE_KEY = "serviceState";
+    private static final String LOGS_KEY = "serviceLogs";
 		
 	// To run this:
 	// mvn spring-boot:run
@@ -44,6 +47,17 @@ public class SpringbootApplication {
 		.setReadTimeout(Duration.ofSeconds(2))
 		.build();
 	}
+
+	@PostConstruct
+    public void init() {
+		// Initializes the Redis key-pair values
+        if (redisTemplate.opsForValue().get(STATE_KEY) == null) {
+            redisTemplate.opsForValue().set(STATE_KEY, "INIT");
+        }
+        if (redisTemplate.opsForList().size(LOGS_KEY) == 0) {
+            redisTemplate.opsForList().rightPush(LOGS_KEY, "[]");
+        }
+    }
 	
 	// Gather system information from both systems
 	// Gathers IP address, processes, remaining disk space, and uptime
@@ -105,10 +119,20 @@ public class SpringbootApplication {
 
 	private void log(String newStatus) {
 		String currentTime = java.time.LocalTime.now().toString();
-		String stringToAdd = currentTime + ": " + currentState.toString() + " -> " + newStatus;
-		logs.add(stringToAdd);
+		String stringToAdd = currentTime + ": " + getSystemState() + " -> " + newStatus;
+		redisTemplate.opsForList().rightPush(LOGS_KEY, stringToAdd);
 
 	}
+
+	// Gets value for system state in Redis
+	private String getSystemState() {
+		return (String) redisTemplate.opsForValue().get(STATE_KEY);
+	}
+
+	// Stores new system state to Redis
+	private void setSystemState(String state) {
+        redisTemplate.opsForValue().set(STATE_KEY, state);
+    }
 
 	// Controller to handle requests to the root of the server
 	@Controller
@@ -117,7 +141,7 @@ public class SpringbootApplication {
 		@RequestMapping("/request")
 		@ResponseBody
 		public String getSysInfo() {
-			if(currentState != ServiceState.RUNNING){
+			if(getSystemState().equals("PAUSED")){
 				return "System is paused. Can't return the state.";
 			}
 
@@ -142,10 +166,10 @@ public class SpringbootApplication {
 		@GetMapping("/state")
 		@ResponseBody
 		public String getState() {
-			if(currentState == ServiceState.PAUSED){
+			if(getSystemState().equals("PAUSED")){
 				return "System is paused. Can't return the state.";
 			}
-			return currentState.toString();
+			return getSystemState();
 		}
 
 		@PutMapping("/state")
@@ -154,32 +178,32 @@ public class SpringbootApplication {
 			HttpHeaders headers = new HttpHeaders();
 			if(state.equals("PAUSED")) {
 				// Don't do anything if the service is already paused
-				if(currentState == ServiceState.PAUSED) {
+				if(getSystemState().equals("PAUSED")) {
 					return new ResponseEntity<>("PAUSED", headers, HttpStatus.OK);
 				}
 				log(state);
-				currentState = ServiceState.PAUSED;
+				setSystemState(state);
 				return new ResponseEntity<>("PAUSED", headers, HttpStatus.OK);
 			}
 			else if(state.equals("RUNNING")) {
 				// Don't do anything if the service is already running
-				if(currentState == ServiceState.RUNNING) {
+				if(getSystemState().equals("RUNNING")) {
 					return new ResponseEntity<>("RUNNING", headers, HttpStatus.OK);
 				}
 				log(state);
-				currentState = ServiceState.RUNNING;
+				setSystemState(state);
 				return new ResponseEntity<>("RUNNING", headers, HttpStatus.OK);
 			}
 			else if (state.equals("INIT")) {
 				log(state);
-				currentState = ServiceState.INIT;
+				setSystemState(state);
 				serviceSleeping = false;
 				headers.add("WWW-Authenticate", "Basic realm=\"Restricted\"");
 				return new ResponseEntity<>("INIT", headers, HttpStatus.OK);
 			}
 			else if(state.equals("SHUTDOWN")) {
 				log(state);
-				currentState = ServiceState.SHUTDOWN;
+				setSystemState(state);
 				// TODO: Shutdown all the docker containers
 				return new ResponseEntity<>("SHUTDOWN", headers, HttpStatus.OK);
 			}
@@ -188,18 +212,19 @@ public class SpringbootApplication {
 			}
 		}
 
-		@GetMapping("/run-log")
-		@ResponseBody
-		public String getRunLog() {
-			if(currentState == ServiceState.PAUSED){
-				return "System is paused. Can't return the state.";
-			}
+        @GetMapping("/run-log")
+        @ResponseBody
+        public String getRunLog() {
+            if(getSystemState().equals("PAUSED")){
+                return "System is paused. Can't return the state.";
+            }
 
-			if(logs == null || logs.isEmpty()) {
-				return "[]";
-			}
+            List<Object> logs = redisTemplate.opsForList().range(LOGS_KEY, 0, -1);
+            if(logs == null || logs.isEmpty()) {
+                return "[]";
+            }
 
-			return String.join("\n", logs);
-		}
+            return String.join("\n", logs.stream().map(Object::toString).toArray(String[]::new));
+        }
 	}
 }
