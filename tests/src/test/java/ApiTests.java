@@ -7,9 +7,35 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 @TestMethodOrder(OrderAnnotation.class)
 public class ApiTests {
+
+    // Returns the amount of currently running containers on the system
+    // This is needed for testing the PUT /state SHUTDOWN
+    // Returns the amount of containers (int) if successful, and -1 if unsuccessful
+    private int getAmountOfRunningContainers(){
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("docker", "ps", "-q");
+            Process process = processBuilder.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            int count = 0;
+            while (reader.readLine() != null) {
+                count++;
+            }
+            reader.close();
+
+            return count;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
 
     private static String userName;
     private static String password;
@@ -134,5 +160,45 @@ public class ApiTests {
             .statusCode(200)
             .contentType("text/plain")
             .body(equalTo("RUNNING"));
+    }
+
+    @Test
+    @Order(7)
+    public void testShutdownState() {
+        // Get the amount of docker containers running before SHUTDOWN
+        int containersRunningBeforeShutdown = getAmountOfRunningContainers();
+        
+        // Put to SHUTDOWN, should respond with 200 OK and all containers must be stopped (docker-compose down)
+        given()
+            .auth().preemptive().basic(userName, password)
+            .contentType("text/plain")
+            .when()
+            .put("/state?state=SHUTDOWN")
+            .then()
+            .statusCode(200)
+            .contentType("text/plain")
+            .body(equalTo("SHUTDOWN"));
+        
+        int containersRunningAfterShutdown = containersRunningBeforeShutdown;
+        int SERVICE_CONTAINER_AMOUNT = 6;
+        int timeout = 20000; // 20 seconds
+        int interval = 3000; // 3 seconds
+        int elapsedTime = 0;
+
+        // Checks if docker has shut down all 6 containers every 3 seconds untill timeout of 20 seconds
+        while (elapsedTime < timeout) {
+            containersRunningAfterShutdown = getAmountOfRunningContainers();
+            if (containersRunningAfterShutdown == containersRunningBeforeShutdown - SERVICE_CONTAINER_AMOUNT) {
+                break;
+            }
+            try {
+                Thread.sleep(interval);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            elapsedTime += interval;
+        }
+
+        assertEquals(containersRunningBeforeShutdown - SERVICE_CONTAINER_AMOUNT, containersRunningAfterShutdown, "PUT /state SHUTDOWN did not close all containers");
     }
 }
