@@ -23,6 +23,8 @@ services:
       - redis
     networks:
       - internal
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
   service1-2:
     build: ./Service1
@@ -33,6 +35,8 @@ services:
       - redis
     networks:
       - internal
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
   service1-3:
     build: ./Service1
@@ -43,6 +47,8 @@ services:
       - redis
     networks:
       - internal
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
   service2:
     build: ./Service2

@@ -117,6 +117,31 @@ public class SpringbootApplication {
 		}
 	}
 
+    private void shutdownDockerCompose() {
+        try {
+            // Stop all containers
+            ProcessBuilder stopProcessBuilder = new ProcessBuilder("docker", "ps", "-q");
+            Process stopProcess = stopProcessBuilder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(stopProcess.getInputStream()));
+            String containerId;
+            while ((containerId = reader.readLine()) != null) {
+                new ProcessBuilder("docker", "stop", containerId).start().waitFor();
+            }
+            reader.close();
+
+            // Remove all containers
+            ProcessBuilder removeProcessBuilder = new ProcessBuilder("docker", "ps", "-a", "-q");
+            Process removeProcess = removeProcessBuilder.start();
+            reader = new BufferedReader(new InputStreamReader(removeProcess.getInputStream()));
+            while ((containerId = reader.readLine()) != null) {
+                new ProcessBuilder("docker", "rm", containerId).start().waitFor();
+            }
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 	private void log(String newStatus) {
 		String currentTime = java.time.LocalTime.now().toString();
 		String stringToAdd = currentTime + ": " + getSystemState() + " -> " + newStatus;
@@ -204,7 +229,7 @@ public class SpringbootApplication {
 			else if(state.equals("SHUTDOWN")) {
 				log(state);
 				setSystemState(state);
-				// TODO: Shutdown all the docker containers
+				shutdownDockerCompose();
 				return new ResponseEntity<>("SHUTDOWN", headers, HttpStatus.OK);
 			}
 			else {
