@@ -64,7 +64,7 @@ public class ApiTests {
         // URL for the testing API in port 8197
         RestAssured.baseURI = "http://localhost:8197";
         userName = "adminUser";
-        password = "$apr1$w7ah8scx$mg2Jg0L4sAEAokKdf2lgm.";
+        password = "pw123";
         given()
             .auth().preemptive().basic(userName, password)
             .contentType("text/plain")
