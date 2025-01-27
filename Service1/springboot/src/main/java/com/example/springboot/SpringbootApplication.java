@@ -128,15 +128,6 @@ public class SpringbootApplication {
                 new ProcessBuilder("docker", "stop", containerId).start().waitFor();
             }
             reader.close();
-
-            // Remove all containers
-            ProcessBuilder removeProcessBuilder = new ProcessBuilder("docker", "ps", "-a", "-q");
-            Process removeProcess = removeProcessBuilder.start();
-            reader = new BufferedReader(new InputStreamReader(removeProcess.getInputStream()));
-            while ((containerId = reader.readLine()) != null) {
-                new ProcessBuilder("docker", "rm", containerId).start().waitFor();
-            }
-            reader.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
