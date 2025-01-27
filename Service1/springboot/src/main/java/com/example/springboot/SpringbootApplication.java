@@ -50,13 +50,9 @@ public class SpringbootApplication {
 
 	@PostConstruct
     public void init() {
-		// Initializes the Redis key-pair values
-        if (redisTemplate.opsForValue().get(STATE_KEY) == null) {
-            redisTemplate.opsForValue().set(STATE_KEY, "INIT");
-        }
-        if (redisTemplate.opsForList().size(LOGS_KEY) == 0) {
-            redisTemplate.opsForList().rightPush(LOGS_KEY, "[]");
-        }
+
+        redisTemplate.opsForValue().set(STATE_KEY, "INIT");
+		redisTemplate.opsForList().trim(LOGS_KEY, 1, 0);
     }
 	
 	// Gather system information from both systems
@@ -191,41 +187,44 @@ public class SpringbootApplication {
 		@PutMapping("/state")
 		@ResponseBody
 		public ResponseEntity<String> setState(String state) {
-			HttpHeaders headers = new HttpHeaders();
-			if(state.equals("PAUSED")) {
-				// Don't do anything if the service is already paused
-				if(getSystemState().equals("PAUSED")) {
-					return new ResponseEntity<>("PAUSED", headers, HttpStatus.OK);
-				}
-				log(state);
-				setSystemState(state);
-				return new ResponseEntity<>("PAUSED", headers, HttpStatus.OK);
-			}
-			else if(state.equals("RUNNING")) {
-				// Don't do anything if the service is already running
-				if(getSystemState().equals("RUNNING")) {
-					return new ResponseEntity<>("RUNNING", headers, HttpStatus.OK);
-				}
-				log(state);
-				setSystemState(state);
-				return new ResponseEntity<>("RUNNING", headers, HttpStatus.OK);
-			}
-			else if (state.equals("INIT")) {
-				log(state);
-				setSystemState(state);
-				serviceSleeping = false;
-				headers.add("WWW-Authenticate", "Basic realm=\"Restricted\"");
-				return new ResponseEntity<>("INIT", headers, HttpStatus.OK);
-			}
-			else if(state.equals("SHUTDOWN")) {
-				log(state);
-				setSystemState(state);
-				shutdownDockerCompose();
-				return new ResponseEntity<>("SHUTDOWN", headers, HttpStatus.OK);
-			}
-			else {
-				return new ResponseEntity<>("INVALID", headers, HttpStatus.BAD_REQUEST);
-			}
+		    HttpHeaders headers = new HttpHeaders();
+		    String currentState = getSystemState();
+		
+		    switch (state) {
+		        case "PAUSED":
+		            if (currentState.equals("PAUSED")) {
+		                return new ResponseEntity<>("PAUSED", headers, HttpStatus.OK);
+		            }
+		            if (!currentState.equals("RUNNING")) {
+		                return new ResponseEntity<>("System needs to be in RUNNING state in order to be put to PAUSED.", headers, HttpStatus.BAD_REQUEST);
+		            }
+		            break;
+				
+		        case "RUNNING":
+		            if (currentState.equals("RUNNING")) {
+		                return new ResponseEntity<>("RUNNING", headers, HttpStatus.OK);
+		            }
+		            break;
+				
+		        case "INIT":
+		            serviceSleeping = false;
+		            headers.add("WWW-Authenticate", "Basic realm=\"Restricted\"");
+		            break;
+				
+		        case "SHUTDOWN":
+		            if (currentState.equals("INIT")) {
+		                return new ResponseEntity<>("System is in INIT state. Can't SHUTDOWN from here.", headers, HttpStatus.BAD_REQUEST);
+		            }
+		            shutdownDockerCompose();
+		            break;
+				
+		        default:
+		            return new ResponseEntity<>("INVALID", headers, HttpStatus.BAD_REQUEST);
+		    }
+		
+		    log(state);
+		    setSystemState(state);
+		    return new ResponseEntity<>(state, headers, HttpStatus.OK);
 		}
 
         @GetMapping("/run-log")
