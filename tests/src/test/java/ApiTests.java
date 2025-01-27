@@ -1,4 +1,6 @@
 import io.restassured.RestAssured;
+import io.restassured.response.Response;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
@@ -45,21 +47,38 @@ public class ApiTests {
         int timeout = 60000; // 1 minute
         int interval = 5000; // 5 seconds
         int elapsedTime = 0;
-        int runningContainers = getAmountOfRunningContainers();
+        boolean service1Booted = false;
 
-        // Wait until the number of running containers reaches 6 or timeout
-        while (elapsedTime < timeout && runningContainers != 6) {
+        // Wait until service1 responds. Otherwise the tests will just fail since service1 returns 502
+        while (elapsedTime < timeout && !service1Booted) {
             try {
-                Thread.sleep(interval);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            elapsedTime += interval;
-            runningContainers = getAmountOfRunningContainers();
-        }
+                Response response = given()
+                    .when()
+                    .get("http://localhost:8197/state");
 
-        if (runningContainers != 6) {
-            throw new RuntimeException("Timeout reached before the number of running containers reached 6");
+                if (response.getStatusCode() == 200) {
+                    service1Booted = true;
+                } else {
+                    Thread.sleep(interval);
+                    elapsedTime += interval;
+                }
+            } catch (Exception e) {
+                System.out.println("Service1 not yet booted, waiting...");
+                try {
+                    Thread.sleep(interval);
+                } catch (InterruptedException e1) {
+                    e1.printStackTrace();
+                }
+                elapsedTime += interval;
+            }
+        }
+        if (!service1Booted) {
+            throw new RuntimeException("Service1 did not boot within the timeout period.");
+        }
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e1) {
+            e1.printStackTrace();
         }
         // URL for the testing API in port 8197
         RestAssured.baseURI = "http://localhost:8197";
